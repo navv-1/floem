@@ -761,17 +761,29 @@ impl TextLayout {
     }
 
     /// Returns the vertical bounds used when visually centering this layout.
+    ///
+    /// Uses a font-size-relative band anchored on the baseline (instead of the
+    /// font's own typographic ascent), so fonts with different ascent/descent
+    /// ratios still land on the same baseline when vertically centered.
     pub fn centering_bounds_y(&self) -> Option<(f32, f32)> {
         if self.layout.is_empty() {
             return None;
         }
+
+        let font_size = self
+            .layout
+            .get(0)
+            .and_then(|line| line.runs().next())
+            .map(|run| run.font_size())
+            .unwrap_or(14.0);
+        let band_ascent = font_size * 0.8;
 
         let mut min_y = f32::INFINITY;
         let mut max_y = f32::NEG_INFINITY;
         for i in 0..self.layout.len() {
             if let Some(line) = self.layout.get(i) {
                 let m = line.metrics();
-                min_y = min_y.min(m.baseline - m.ascent);
+                min_y = min_y.min(m.baseline - band_ascent);
                 max_y = max_y.max(m.baseline);
             }
         }
